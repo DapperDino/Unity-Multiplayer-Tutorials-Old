@@ -24,11 +24,13 @@ namespace DapperDino.UMT.NetworkVariables
 
         private void OnEnable()
         {
+            // Start listening for the team index being updated
             teamIndex.OnValueChanged += OnTeamChanged;
         }
 
         private void OnDisable()
         {
+            // Stop listening for the team index being updated
             teamIndex.OnValueChanged -= OnTeamChanged;
         }
 
@@ -37,6 +39,7 @@ namespace DapperDino.UMT.NetworkVariables
             // Only clients need to update the renderer
             if (!IsClient) { return; }
 
+            // Update the colour of the player's mesh renderer
             teamColourRenderer.material.SetColor("_BaseColor", teamColours[newTeamIndex]);
         }
     }
