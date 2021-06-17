@@ -20,18 +20,6 @@ namespace DapperDino.UMT.ObjectSpawning
             ballColour.Value = Random.ColorHSV();
         }
 
-        private void OnEnable()
-        {
-            // Start listening for the ball colour updated
-            ballColour.OnValueChanged += OnBallColourChanged;
-        }
-
-        private void OnDisable()
-        {
-            // Stop listening for the ball colour updated
-            ballColour.OnValueChanged -= OnBallColourChanged;
-        }
-
         private void Update()
         {
             // Make sure this is belongs to us
@@ -42,6 +30,18 @@ namespace DapperDino.UMT.ObjectSpawning
 
             // Send a message to the server to execute this method
             DestroyBallServerRpc();
+        }
+
+        private void OnEnable()
+        {
+            // Start listening for the ball colour updated
+            ballColour.OnValueChanged += OnBallColourChanged;
+        }
+
+        private void OnDisable()
+        {
+            // Stop listening for the ball colour updated
+            ballColour.OnValueChanged -= OnBallColourChanged;
         }
 
         private void OnBallColourChanged(Color oldBallColour, Color newBallColour)
