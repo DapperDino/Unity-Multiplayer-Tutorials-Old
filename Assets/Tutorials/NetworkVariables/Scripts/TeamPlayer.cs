@@ -21,7 +21,13 @@ namespace DapperDino.UMT.NetworkVariables
             // Update the teamIndex NetworkVariable
             teamIndex.Value = newTeamIndex;
         }
-
+        
+        private void Start()
+        {
+            // Apply already connected teams for late joined clients
+            OnTeamChanged(0,teamIndex.Value);
+        }
+    
         private void OnEnable()
         {
             // Start listening for the team index being updated
