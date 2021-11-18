@@ -1,5 +1,5 @@
 using UnityEngine;
-using MLAPI;
+using Unity.Netcode;
 using TMPro;
 using System.Text;
 using System.Collections.Generic;
@@ -40,7 +40,7 @@ namespace DapperDino.UMT.PlayerNames
 
             // Hook up password approval check
             NetworkManager.Singleton.ConnectionApprovalCallback += ApprovalCheck;
-            NetworkManager.Singleton.StartHost(new Vector3(-2f, 0f, 0f), Quaternion.Euler(0f, 135f, 0f));
+            NetworkManager.Singleton.StartHost();
         }
 
         public void Client()
@@ -60,14 +60,11 @@ namespace DapperDino.UMT.PlayerNames
 
         public void Leave()
         {
-            if (NetworkManager.Singleton.IsHost)
+            NetworkManager.Singleton.Shutdown();
+
+            if (NetworkManager.Singleton.IsServer)
             {
-                NetworkManager.Singleton.StopHost();
                 NetworkManager.Singleton.ConnectionApprovalCallback -= ApprovalCheck;
-            }
-            else if (NetworkManager.Singleton.IsClient)
-            {
-                NetworkManager.Singleton.StopClient();
             }
 
             passwordEntryUI.SetActive(true);
@@ -77,7 +74,7 @@ namespace DapperDino.UMT.PlayerNames
 
         public static PlayerData? GetPlayerData(ulong clientId)
         {
-            if(clientData.TryGetValue(clientId, out PlayerData playerData))
+            if (clientData.TryGetValue(clientId, out PlayerData playerData))
             {
                 return playerData;
             }
@@ -107,7 +104,7 @@ namespace DapperDino.UMT.PlayerNames
 
         private void HandleClientDisconnect(ulong clientId)
         {
-            if(NetworkManager.Singleton.IsServer)
+            if (NetworkManager.Singleton.IsServer)
             {
                 clientData.Remove(clientId);
             }
@@ -121,7 +118,7 @@ namespace DapperDino.UMT.PlayerNames
             }
         }
 
-        private void ApprovalCheck(byte[] connectionData, ulong clientId, MLAPI.NetworkManager.ConnectionApprovedDelegate callback)
+        private void ApprovalCheck(byte[] connectionData, ulong clientId, NetworkManager.ConnectionApprovedDelegate callback)
         {
             string payload = Encoding.ASCII.GetString(connectionData);
             var connectionPayload = JsonUtility.FromJson<ConnectionPayload>(payload);
@@ -131,7 +128,7 @@ namespace DapperDino.UMT.PlayerNames
             Vector3 spawnPos = Vector3.zero;
             Quaternion spawnRot = Quaternion.identity;
 
-            if(approveConnection)
+            if (approveConnection)
             {
                 switch (NetworkManager.Singleton.ConnectedClients.Count)
                 {

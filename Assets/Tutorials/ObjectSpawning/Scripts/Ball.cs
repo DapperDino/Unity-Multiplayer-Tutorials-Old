@@ -1,6 +1,4 @@
-using MLAPI;
-using MLAPI.Messaging;
-using MLAPI.NetworkVariable;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace DapperDino.UMT.ObjectSpawning
@@ -9,9 +7,9 @@ namespace DapperDino.UMT.ObjectSpawning
     {
         [SerializeField] private Renderer ballRenderer;
 
-        private NetworkVariableColor ballColour = new NetworkVariableColor();
+        private NetworkVariable<Color> ballColour = new NetworkVariable<Color>();
 
-        public override void NetworkStart()
+        public override void OnNetworkSpawn()
         {
             // Make sure we are the server
             if (!IsServer) { return; }

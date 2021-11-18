@@ -1,6 +1,6 @@
 using System;
 using System.Text;
-using MLAPI;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -79,19 +79,12 @@ namespace DapperDino.UMT.Lobby.Networking
             {
                 gameNetPortal.OnUserDisconnectRequested += HandleUserDisconnectRequested;
             }
-
-            SceneManager.sceneLoaded += HandleSceneLoaded;
-        }
-
-        private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            gameNetPortal.ClientToServerSceneChanged(SceneManager.GetActiveScene().buildIndex);
         }
 
         private void HandleUserDisconnectRequested()
         {
             DisconnectReason.SetDisconnectReason(ConnectStatus.UserRequestedDisconnect);
-            NetworkManager.Singleton.StopClient();
+            NetworkManager.Singleton.Shutdown();
 
             HandleClientDisconnect(NetworkManager.Singleton.LocalClientId);
 
@@ -117,7 +110,6 @@ namespace DapperDino.UMT.Lobby.Networking
         {
             if (!NetworkManager.Singleton.IsConnectedClient && !NetworkManager.Singleton.IsHost)
             {
-                SceneManager.sceneLoaded -= HandleSceneLoaded;
                 gameNetPortal.OnUserDisconnectRequested -= HandleUserDisconnectRequested;
 
                 if (SceneManager.GetActiveScene().name != "Scene_Menu")

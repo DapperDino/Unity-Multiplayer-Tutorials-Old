@@ -1,6 +1,4 @@
-using MLAPI;
-using MLAPI.Messaging;
-using MLAPI.NetworkVariable;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace DapperDino.UMT.PlayerNames
@@ -10,7 +8,7 @@ namespace DapperDino.UMT.PlayerNames
         [SerializeField] private Renderer teamColourRenderer;
         [SerializeField] private Color[] teamColours;
 
-        private NetworkVariableByte teamIndex = new NetworkVariableByte(0);
+        private NetworkVariable<byte> teamIndex = new NetworkVariable<byte>(byte.MinValue);
 
         [ServerRpc]
         public void SetTeamServerRpc(byte newTeamIndex)

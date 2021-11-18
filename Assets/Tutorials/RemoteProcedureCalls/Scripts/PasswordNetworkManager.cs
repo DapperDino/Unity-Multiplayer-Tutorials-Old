@@ -1,5 +1,5 @@
 using UnityEngine;
-using MLAPI;
+using Unity.Netcode;
 using TMPro;
 using System.Text;
 
@@ -32,7 +32,7 @@ namespace DapperDino.UMT.RemoteProcedureCalls
         {
             // Hook up password approval check
             NetworkManager.Singleton.ConnectionApprovalCallback += ApprovalCheck;
-            NetworkManager.Singleton.StartHost(new Vector3(-2f, 0f, 0f), Quaternion.Euler(0f, 135f, 0f));
+            NetworkManager.Singleton.StartHost();
         }
 
         public void Client()
@@ -44,14 +44,11 @@ namespace DapperDino.UMT.RemoteProcedureCalls
 
         public void Leave()
         {
-            if (NetworkManager.Singleton.IsHost)
+            NetworkManager.Singleton.Shutdown();
+
+            if (NetworkManager.Singleton.IsServer)
             {
-                NetworkManager.Singleton.StopHost();
                 NetworkManager.Singleton.ConnectionApprovalCallback -= ApprovalCheck;
-            }
-            else if (NetworkManager.Singleton.IsClient)
-            {
-                NetworkManager.Singleton.StopClient();
             }
 
             passwordEntryUI.SetActive(true);
@@ -87,7 +84,7 @@ namespace DapperDino.UMT.RemoteProcedureCalls
             }
         }
 
-        private void ApprovalCheck(byte[] connectionData, ulong clientId, MLAPI.NetworkManager.ConnectionApprovedDelegate callback)
+        private void ApprovalCheck(byte[] connectionData, ulong clientId, NetworkManager.ConnectionApprovedDelegate callback)
         {
             string password = Encoding.ASCII.GetString(connectionData);
 
@@ -98,6 +95,10 @@ namespace DapperDino.UMT.RemoteProcedureCalls
 
             switch (NetworkManager.Singleton.ConnectedClients.Count)
             {
+                case 0:
+                    spawnPos = new Vector3(-2f, 0f, 0f);
+                    spawnRot = Quaternion.Euler(0f, 135f, 0f);
+                    break;
                 case 1:
                     spawnPos = new Vector3(0f, 0f, 0f);
                     spawnRot = Quaternion.Euler(0f, 180f, 0f);

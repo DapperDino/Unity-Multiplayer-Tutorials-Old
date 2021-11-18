@@ -1,9 +1,8 @@
 using System;
-using MLAPI;
-using MLAPI.Messaging;
-using MLAPI.Serialization.Pooled;
-using MLAPI.Transports;
+using Unity.Collections;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace DapperDino.UMT.Lobby.Networking
 {
@@ -37,9 +36,6 @@ namespace DapperDino.UMT.Lobby.Networking
         {
             NetworkManager.Singleton.OnServerStarted += HandleNetworkReady;
             NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
-
-            RegisterClientMessageHandlers();
-            RegisterServerMessageHandlers();
         }
 
         private void OnDestroy()
@@ -48,15 +44,23 @@ namespace DapperDino.UMT.Lobby.Networking
             {
                 NetworkManager.Singleton.OnServerStarted -= HandleNetworkReady;
                 NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
-            }
 
-            UnregisterClientMessageHandlers();
-            UnregisterServerMessageHandlers();
+                if (NetworkManager.Singleton.SceneManager != null)
+                {
+                    NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleSceneEvent;
+                }
+
+                if (NetworkManager.Singleton.CustomMessagingManager == null) { return; }
+
+                UnregisterClientMessageHandlers();
+            }
         }
 
         public void StartHost()
         {
             NetworkManager.Singleton.StartHost();
+
+            RegisterClientMessageHandlers();
         }
 
         public void RequestDisconnect()
@@ -69,6 +73,14 @@ namespace DapperDino.UMT.Lobby.Networking
             if (clientId != NetworkManager.Singleton.LocalClientId) { return; }
 
             HandleNetworkReady();
+            NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
+        }
+
+        private void HandleSceneEvent(SceneEvent sceneEvent)
+        {
+            if (sceneEvent.SceneEventType != SceneEventType.LoadComplete) return;
+
+            OnClientSceneChanged?.Invoke(sceneEvent.ClientId, SceneManager.GetSceneByName(sceneEvent.SceneName).buildIndex);
         }
 
         private void HandleNetworkReady()
@@ -85,49 +97,23 @@ namespace DapperDino.UMT.Lobby.Networking
 
         private void RegisterClientMessageHandlers()
         {
-            CustomMessagingManager.RegisterNamedMessageHandler("ServerToClientConnectResult", (senderClientId, stream) =>
+            NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler("ServerToClientConnectResult", (senderClientId, reader) =>
             {
-                using (var reader = PooledNetworkReader.Get(stream))
-                {
-                    ConnectStatus status = (ConnectStatus)reader.ReadInt32();
-
-                    OnConnectionFinished?.Invoke(status);
-                }
+                reader.ReadValueSafe(out ConnectStatus status);
+                OnConnectionFinished?.Invoke(status);
             });
 
-            CustomMessagingManager.RegisterNamedMessageHandler("ServerToClientSetDisconnectReason", (senderClientId, stream) =>
+            NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler("ServerToClientSetDisconnectReason", (senderClientId, reader) =>
             {
-                using (var reader = PooledNetworkReader.Get(stream))
-                {
-                    ConnectStatus status = (ConnectStatus)reader.ReadInt32();
-
-                    OnDisconnectReasonReceived?.Invoke(status);
-                }
-            });
-        }
-
-        private void RegisterServerMessageHandlers()
-        {
-            CustomMessagingManager.RegisterNamedMessageHandler("ClientToServerSceneChanged", (senderClientId, stream) =>
-            {
-                using (var reader = PooledNetworkReader.Get(stream))
-                {
-                    int sceneIndex = reader.ReadInt32();
-
-                    OnClientSceneChanged?.Invoke(senderClientId, sceneIndex);
-                }
+                reader.ReadValueSafe(out ConnectStatus status);
+                OnDisconnectReasonReceived?.Invoke(status);
             });
         }
 
         private void UnregisterClientMessageHandlers()
         {
-            CustomMessagingManager.UnregisterNamedMessageHandler("ServerToClientConnectResult");
-            CustomMessagingManager.UnregisterNamedMessageHandler("ServerToClientSetDisconnectReason");
-        }
-
-        private void UnregisterServerMessageHandlers()
-        {
-            CustomMessagingManager.UnregisterNamedMessageHandler("ClientToServerSceneChanged");
+            NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler("ServerToClientConnectResult");
+            NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler("ServerToClientSetDisconnectReason");
         }
 
         #endregion
@@ -136,45 +122,16 @@ namespace DapperDino.UMT.Lobby.Networking
 
         public void ServerToClientConnectResult(ulong netId, ConnectStatus status)
         {
-            using (var buffer = PooledNetworkBuffer.Get())
-            {
-                using (var writer = PooledNetworkWriter.Get(buffer))
-                {
-                    writer.WriteInt32((int)status);
-                    CustomMessagingManager.SendNamedMessage("ServerToClientConnectResult", netId, buffer, NetworkChannel.Internal);
-                }
-            }
+            var writer = new FastBufferWriter(sizeof(ConnectStatus), Allocator.Temp);
+            writer.WriteValueSafe(status);
+            NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage("ServerToClientConnectResult", netId, writer);
         }
 
         public void ServerToClientSetDisconnectReason(ulong netId, ConnectStatus status)
         {
-            using (var buffer = PooledNetworkBuffer.Get())
-            {
-                using (var writer = PooledNetworkWriter.Get(buffer))
-                {
-                    writer.WriteInt32((int)status);
-                    CustomMessagingManager.SendNamedMessage("ServerToClientSetDisconnectReason", netId, buffer, NetworkChannel.Internal);
-                }
-            }
-        }
-
-        public void ClientToServerSceneChanged(int newScene)
-        {
-            if (NetworkManager.Singleton.IsHost)
-            {
-                OnClientSceneChanged?.Invoke(NetworkManager.Singleton.ServerClientId, newScene);
-            }
-            else if (NetworkManager.Singleton.IsConnectedClient)
-            {
-                using (var buffer = PooledNetworkBuffer.Get())
-                {
-                    using (var writer = PooledNetworkWriter.Get(buffer))
-                    {
-                        writer.WriteInt32(newScene);
-                        CustomMessagingManager.SendNamedMessage("ClientToServerSceneChanged", NetworkManager.Singleton.ServerClientId, buffer, NetworkChannel.Internal);
-                    }
-                }
-            }
+            var writer = new FastBufferWriter(sizeof(ConnectStatus), Allocator.Temp);
+            writer.WriteValueSafe(status);
+            NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage("ServerToClientSetDisconnectReason", netId, writer);
         }
 
         #endregion

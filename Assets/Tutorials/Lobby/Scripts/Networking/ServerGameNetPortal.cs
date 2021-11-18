@@ -2,9 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
-using MLAPI;
-using MLAPI.SceneManagement;
-using MLAPI.Spawning;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -89,14 +87,14 @@ namespace DapperDino.UMT.Lobby.Networking
         {
             gameInProgress = true;
 
-            NetworkSceneManager.SwitchScene("Scene_Main");
+            NetworkManager.Singleton.SceneManager.LoadScene("Scene_Main", LoadSceneMode.Single);
         }
 
         public void EndRound()
         {
             gameInProgress = false;
 
-            NetworkSceneManager.SwitchScene("Scene_Lobby");
+            NetworkManager.Singleton.SceneManager.LoadScene("Scene_Lobby", LoadSceneMode.Single);
         }
 
         private void HandleNetworkReadied()
@@ -107,7 +105,7 @@ namespace DapperDino.UMT.Lobby.Networking
             NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
             gameNetPortal.OnClientSceneChanged += HandleClientSceneChanged;
 
-            NetworkSceneManager.SwitchScene("Scene_Lobby");
+            NetworkManager.Singleton.SceneManager.LoadScene("Scene_Lobby", LoadSceneMode.Single);
 
             if (NetworkManager.Singleton.IsHost)
             {
@@ -146,7 +144,7 @@ namespace DapperDino.UMT.Lobby.Networking
         {
             HandleClientDisconnect(NetworkManager.Singleton.LocalClientId);
 
-            NetworkManager.Singleton.StopHost();
+            NetworkManager.Singleton.Shutdown();
 
             ClearData();
 
@@ -178,6 +176,12 @@ namespace DapperDino.UMT.Lobby.Networking
             if (connectionData.Length > MaxConnectionPayload)
             {
                 callback(false, 0, false, null, null);
+                return;
+            }
+
+            if (clientId == NetworkManager.Singleton.LocalClientId)
+            {
+                callback(false, null, true, null, null);
                 return;
             }
 
@@ -232,7 +236,7 @@ namespace DapperDino.UMT.Lobby.Networking
 
         private void KickClient(ulong clientId)
         {
-            NetworkObject networkObject = NetworkSpawnManager.GetPlayerNetworkObject(clientId);
+            NetworkObject networkObject = NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(clientId);
             if (networkObject != null)
             {
                 networkObject.Despawn(true);

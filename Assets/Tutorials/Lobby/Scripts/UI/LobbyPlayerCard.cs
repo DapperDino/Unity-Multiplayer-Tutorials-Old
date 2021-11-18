@@ -1,4 +1,3 @@
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,7 +17,7 @@ namespace DapperDino.UMT.Lobby.UI
 
         public void UpdateDisplay(LobbyPlayerState lobbyPlayerState)
         {
-            playerDisplayNameText.text = lobbyPlayerState.PlayerName;
+            playerDisplayNameText.text = lobbyPlayerState.PlayerName.ToString();
             isReadyToggle.isOn = lobbyPlayerState.IsReady;
 
             waitingForPlayerPanel.SetActive(false);

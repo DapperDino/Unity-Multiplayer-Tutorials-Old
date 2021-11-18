@@ -1,9 +1,5 @@
-using System;
 using DapperDino.UMT.Lobby.Networking;
-using MLAPI;
-using MLAPI.Connection;
-using MLAPI.Messaging;
-using MLAPI.NetworkVariable.Collections;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,9 +11,14 @@ namespace DapperDino.UMT.Lobby.UI
         [SerializeField] private LobbyPlayerCard[] lobbyPlayerCards;
         [SerializeField] private Button startGameButton;
 
-        private NetworkList<LobbyPlayerState> lobbyPlayers = new NetworkList<LobbyPlayerState>();
+        private NetworkList<LobbyPlayerState> lobbyPlayers;
 
-        public override void NetworkStart()
+        private void Awake()
+        {
+            lobbyPlayers = new NetworkList<LobbyPlayerState>();
+        }
+
+        public override void OnNetworkSpawn()
         {
             if (IsClient)
             {
@@ -38,8 +39,10 @@ namespace DapperDino.UMT.Lobby.UI
             }
         }
 
-        private void OnDestroy()
+        public override void OnDestroy()
         {
+            base.OnDestroy();
+
             lobbyPlayers.OnListChanged -= HandleLobbyPlayersStateChanged;
 
             if (NetworkManager.Singleton)

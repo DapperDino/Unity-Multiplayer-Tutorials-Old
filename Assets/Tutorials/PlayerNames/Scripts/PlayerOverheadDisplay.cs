@@ -1,7 +1,7 @@
-using MLAPI;
-using MLAPI.NetworkVariable;
+using Unity.Netcode;
 using TMPro;
 using UnityEngine;
+using Unity.Collections;
 
 namespace DapperDino.UMT.PlayerNames
 {
@@ -9,15 +9,15 @@ namespace DapperDino.UMT.PlayerNames
     {
         [SerializeField] private TMP_Text displayNameText;
 
-        private NetworkVariableString displayName = new NetworkVariableString();
+        private NetworkVariable<FixedString32Bytes> displayName = new NetworkVariable<FixedString32Bytes>();
 
-        public override void NetworkStart()
+        public override void OnNetworkSpawn()
         {
             if (!IsServer) { return; }
 
             PlayerData? playerData = PasswordNetworkManager.GetPlayerData(OwnerClientId);
 
-            if(playerData.HasValue)
+            if (playerData.HasValue)
             {
                 displayName.Value = playerData.Value.PlayerName;
             }
@@ -33,9 +33,9 @@ namespace DapperDino.UMT.PlayerNames
             displayName.OnValueChanged -= HandleDisplayNameChanged;
         }
 
-        private void HandleDisplayNameChanged(string oldDisplayName, string newDisplayName)
+        private void HandleDisplayNameChanged(FixedString32Bytes oldDisplayName, FixedString32Bytes newDisplayName)
         {
-            displayNameText.text = newDisplayName;
+            displayNameText.text = newDisplayName.ToString();
         }
     }
 }
