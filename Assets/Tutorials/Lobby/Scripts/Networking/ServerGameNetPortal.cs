@@ -171,21 +171,31 @@ namespace DapperDino.UMT.Lobby.Networking
             gameInProgress = false;
         }
 
-        private void ApprovalCheck(byte[] connectionData, ulong clientId, NetworkManager.ConnectionApprovedDelegate callback)
+        private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
         {
-            if (connectionData.Length > MaxConnectionPayload)
+            if (request.Payload.Length > MaxConnectionPayload)
             {
-                callback(false, 0, false, null, null);
+                response.CreatePlayerObject = true;
+                response.PlayerPrefabHash = 0;
+                response.Approved = false;
+                response.Position = null;
+                response.Rotation = null;
                 return;
             }
+
+            var clientId = request.ClientNetworkId;
 
             if (clientId == NetworkManager.Singleton.LocalClientId)
             {
-                callback(false, null, true, null, null);
+                response.CreatePlayerObject = false;
+                response.PlayerPrefabHash = null;
+                response.Approved = true;
+                response.Position = null;
+                response.Rotation = null;
                 return;
             }
 
-            string payload = Encoding.UTF8.GetString(connectionData);
+            string payload = Encoding.UTF8.GetString(request.Payload);
             var connectionPayload = JsonUtility.FromJson<ConnectionPayload>(payload);
 
             ConnectStatus gameReturnStatus = ConnectStatus.Success;
@@ -215,7 +225,11 @@ namespace DapperDino.UMT.Lobby.Networking
                 clientData[connectionPayload.clientGUID] = new PlayerData(connectionPayload.playerName, clientId);
             }
 
-            callback(false, 0, true, null, null);
+            response.CreatePlayerObject = false;
+            response.PlayerPrefabHash = 0;
+            response.Approved = true;
+            response.Position = null;
+            response.Rotation = null;
 
             gameNetPortal.ServerToClientConnectResult(clientId, gameReturnStatus);
 
