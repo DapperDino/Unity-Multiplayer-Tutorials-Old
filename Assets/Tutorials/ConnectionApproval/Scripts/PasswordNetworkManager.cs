@@ -61,7 +61,7 @@ namespace DapperDino.UMT.ConnectionApproval
             // Temporary workaround to treat host as client
             if (NetworkManager.Singleton.IsHost)
             {
-                HandleClientConnected(NetworkManager.Singleton.ServerClientId);
+                HandleClientConnected(NetworkManager.ServerClientId);
             }
         }
 
@@ -85,9 +85,9 @@ namespace DapperDino.UMT.ConnectionApproval
             }
         }
 
-        private void ApprovalCheck(byte[] connectionData, ulong clientId, NetworkManager.ConnectionApprovedDelegate callback)
+        private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
         {
-            string password = Encoding.ASCII.GetString(connectionData);
+            string password = Encoding.ASCII.GetString(request.Payload);
 
             bool approveConnection = password == passwordInputField.text;
 
@@ -110,7 +110,11 @@ namespace DapperDino.UMT.ConnectionApproval
                     break;
             }
 
-            callback(true, null, approveConnection, spawnPos, spawnRot);
+            response.CreatePlayerObject = true;
+            response.PlayerPrefabHash = null;
+            response.Approved = approveConnection;
+            response.Position = spawnPos;
+            response.Rotation = spawnRot;
         }
     }
 }
